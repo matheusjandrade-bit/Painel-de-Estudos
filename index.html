@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudos · Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-list-check"></i> Revisões</h2>
+            <button class="sidebar-close" id="closeSidebar"><i class="fas fa-times"></i></button>
+        </div>
+        <ul class="revisao-list" id="revisaoList">
+            <li class="revisao-empty"><i class="fas fa-check-circle"></i> Nenhum assunto a revisar</li>
+        </ul>
+
+        <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <div class="mode-toggle">
+                <button class="active" data-mode="table"><i class="fas fa-table"></i> Tabela</button>
+                <button data-mode="chart"><i class="fas fa-chart-bar"></i> Gráfico</button>
+                <button data-mode="flashcard"><i class="fas fa-brain"></i> Análise</button>
+            </div>
+        </div>
+
+        <div class="chart-options">
+            <label><i class="fas fa-chart-pie"></i> Tipo de gráfico</label>
+            <div class="option-group" id="chartTypeGroup">
+                <button class="active" data-chart="bars"><i class="fas fa-chart-bar"></i> Barras</button>
+                <button data-chart="line"><i class="fas fa-chart-line"></i> Linha</button>
+                <button data-chart="pie"><i class="fas fa-chart-pie"></i> Pizza</button>
+            </div>
+        </div>
+
+        <div class="theme-toggle-wrap">
+            <label><i class="fas fa-moon"></i> Modo escuro</label>
+            <button class="theme-switch" id="themeToggle" aria-label="Alternar tema">
+                <span class="thumb"></span>
+            </button>
+        </div>
+
+        <div style="margin-top: 16px; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
+            <i class="fas fa-database"></i> Dados salvos localmente
+        </div>
+    </aside>
+
+    <!-- ===== CONTEÚDO PRINCIPAL ===== -->
+    <main class="main-content">
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card delay-1"><div class="value" id="totalCount">0</div><div class="label">📌 Total</div></div>
+            <div class="stat-card delay-2"><div class="value" id="dominatedCount">0</div><div class="label">✅ Dominados</div></div>
+            <div class="stat-card delay-3"><div class="value" id="revisionCount">0</div><div class="label">⚠️ Revisões</div></div>
+            <div class="stat-card delay-4"><div class="value" id="avgAccuracy">0%</div><div class="label">📊 Média Acertos</div></div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar assunto..." style="flex:1; min-width:120px;">
+            <select id="statusFilter">
+                <option value="all">Todos os status</option>
+                <option value="PENDENTE">Pendente</option>
+                <option value="HORA DE PRATICAR">Praticar</option>
+                <option value="ABAIXO DA META">Abaixo da meta</option>
+                <option value="REVISAR (Erro alto)">Revisar (erro)</option>
+                <option value="REVISAR (15 dias)">Revisar (tempo)</option>
+                <option value="DOMINADO">Dominado</option>
+            </select>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Adicionar</button>
+                <button class="btn btn-success" id="exportBtn"><i class="fas fa-download"></i></button>
+                <button class="btn btn-warning" id="importBtn"><i class="fas fa-upload"></i></button>
+                <input type="file" id="fileInput" accept=".json" style="display:none;">
+                <button class="btn btn-danger" id="clearBtn"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>
+
+        <!-- Modo Tabela -->
+        <div class="table-view" id="tableView">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-sort="semana">Semana <i class="fas fa-sort"></i></th>
+                            <th data-sort="assunto">Assunto <i class="fas fa-sort"></i></th>
+                            <th data-sort="meta">Meta <i class="fas fa-sort"></i></th>
+                            <th data-sort="feitas">Feitas <i class="fas fa-sort"></i></th>
+                            <th data-sort="acertos">Acertos <i class="fas fa-sort"></i></th>
+                            <th>Erros</th>
+                            <th>% Acerto</th>
+                            <th data-sort="data">Data <i class="fas fa-sort"></i></th>
+                            <th>Status</th>
+                            <th>Detalhes</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modo Gráfico -->
+        <div class="chart-view" id="chartView">
+            <div id="chartContainer" class="chart-container"></div>
+        </div>
+
+        <!-- Modo Flashcards (Análise) -->
+        <div class="flashcard-view" id="flashcardView">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                <i class="fas fa-brain" style="font-size:1.8rem; color:var(--accent);"></i>
+                <h3 style="color:var(--text-primary); font-weight:600;">Análise de Desempenho</h3>
+            </div>
+            <div class="flashcard-grid" id="flashcardGrid">
+                <!-- preenchido via JS -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Botão flutuante -->
+<button class="sidebar-toggle-btn" id="sidebarToggle">
+    <i class="fas fa-chevron-right"></i>
+</button>
+
+<script src="script.js"></script>
+</body>
+</html>
