@@ -326,7 +326,7 @@
         return card;
     }
 
-    // ===== ATUALIZAR CARD EXISTENTE (sem recriar) =====
+    // ===== ATUALIZAR APENAS CAMPOS DERIVADOS (SEM TOCAR NOS INPUTS) =====
     function atualizarCardExistente(id) {
         const linha = linhas.find(l => l.id === id);
         if (!linha) return;
@@ -353,23 +353,12 @@
             'DOMINADO': 'badge-dominado'
         }[statusText] || 'badge-pendente';
 
-        // Atualiza campos específicos sem recriar o card
-        const inputs = card.querySelectorAll('input');
-        inputs.forEach(input => {
-            const field = input.dataset.field;
-            if (field) {
-                let value = linha[field];
-                if (value === undefined) return;
-                if (field === 'data') value = value || '';
-                input.value = value;
-            }
-        });
-
-        // Atualiza erros
+        // Atualiza apenas campos derivados (não inputs)
+        // Erros (6ª linha)
         const errosSpan = card.querySelector('.card-row:nth-child(6) .value');
         if (errosSpan) errosSpan.textContent = erros;
 
-        // Atualiza % acerto
+        // % Acerto (7ª linha)
         const percContainer = card.querySelector('.card-row:nth-child(7) .value .input-group');
         if (percContainer) {
             const percSpan = percContainer.querySelector('span:first-child');
@@ -381,7 +370,7 @@
             }
         }
 
-        // Atualiza barra de progresso em "Feitas"
+        // Barra de progresso em "Feitas" (4ª linha)
         const feitasContainer = card.querySelector('.card-row:nth-child(4) .value .input-group');
         if (feitasContainer) {
             const barFill = feitasContainer.querySelector('.bar .fill');
@@ -392,14 +381,14 @@
             }
         }
 
-        // Atualiza status
+        // Status (9ª linha)
         const statusSpan = card.querySelector('.card-row:nth-child(9) .value .badge');
         if (statusSpan) {
             statusSpan.textContent = statusText;
             statusSpan.className = 'badge ' + badgeClass;
         }
 
-        // Atualiza detalhes
+        // Detalhes (10ª linha)
         const detalheSpan = card.querySelector('.card-row:nth-child(10) .value');
         if (detalheSpan) {
             detalheSpan.textContent = detalhe.texto;
@@ -408,9 +397,11 @@
                         detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
             detalheSpan.style.color = cor;
         }
+
+        // NOTA: Os inputs NÃO são atualizados para não perder o foco!
     }
 
-    // ===== ATUALIZAR TABELA EXISTENTE =====
+    // ===== ATUALIZAR TABELA EXISTENTE (sem tocar nos inputs) =====
     function atualizarTabelaExistente(id) {
         const linha = linhas.find(l => l.id === id);
         if (!linha) return;
@@ -445,22 +436,10 @@
         const cells = tr.querySelectorAll('td');
         if (cells.length < 11) return;
 
-        // Atualiza inputs
-        const inputs = tr.querySelectorAll('input');
-        inputs.forEach(input => {
-            const field = input.dataset.field;
-            if (field) {
-                let value = linha[field];
-                if (value === undefined) return;
-                if (field === 'data') value = value || '';
-                input.value = value;
-            }
-        });
-
-        // Erros
+        // Erros (coluna 5)
         cells[5].textContent = erros;
 
-        // % Acerto
+        // % Acerto (coluna 6)
         const percContainer = cells[6];
         const spanPerc = percContainer.querySelector('span');
         const barraPerc = percContainer.querySelector('.bar .fill');
@@ -470,15 +449,15 @@
             barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
         }
 
-        // Status
+        // Status (coluna 8)
         cells[8].innerHTML = statusHtml;
 
-        // Detalhes
+        // Detalhes (coluna 9)
         const detalheCell = cells[9];
         detalheCell.textContent = detalhe.texto;
         detalheCell.style.color = detalheCor;
 
-        // Barra de progresso em Feitas
+        // Barra de progresso em Feitas (coluna 3)
         const feitasCell = cells[3];
         const progressContainer = feitasCell.querySelector('.progress-inline');
         if (progressContainer) {
@@ -491,11 +470,12 @@
                 barraFeitas.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
             }
         }
+
+        // NOTA: Os inputs NÃO são atualizados para não perder o foco!
     }
 
     // ===== ATUALIZAR LINHA (chamada pelos eventos) =====
     function atualizarLinhaDOM(id) {
-        // Atualiza tabela e card sem recriar
         atualizarTabelaExistente(id);
         atualizarCardExistente(id);
     }
@@ -813,7 +793,7 @@
         else if (field === 'acertos') linha.acertos = Number(value);
         else if (field === 'data') linha.data = value;
         salvarDados();
-        // Atualiza apenas a linha no DOM (sem recriar)
+        // Atualiza apenas campos derivados (não toca nos inputs)
         atualizarLinhaDOM(id);
         // Atualiza estatísticas e revisões
         const filtradas = getLinhasOrdenadasEFiltradas();
@@ -933,7 +913,7 @@
             atualizarLinhaDados(id, field, value);
         });
 
-        // Inputs nos cards (mobile) – agora sem recriar o card
+        // Inputs nos cards (mobile) – sem perder o foco!
         cardsContainer.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
