@@ -220,7 +220,7 @@
         return tr;
     }
 
-    // ===== CARDS (Mobile – com inputs interativos) =====
+    // ===== CARDS (Mobile) =====
     function renderizarCards(filtradas) {
         cardsContainer.innerHTML = '';
         if (filtradas.length === 0) {
@@ -326,88 +326,178 @@
         return card;
     }
 
-    // ===== ATUALIZAR LINHA (tabela e cards) =====
-    function atualizarLinhaDOM(id) {
+    // ===== ATUALIZAR CARD EXISTENTE (sem recriar) =====
+    function atualizarCardExistente(id) {
         const linha = linhas.find(l => l.id === id);
         if (!linha) return;
-        // Atualiza na tabela
-        const tr = tbody.querySelector(`tr[data-id="${id}"]`);
-        if (tr) {
-            const filtradas = getLinhasOrdenadasEFiltradas();
-            const idx = filtradas.findIndex(l => l.id === id);
-            if (idx === -1) { tr.remove(); } else {
-                const statusObj = calcularStatus(linha);
-                const statusText = statusObj.status;
-                const erros = Math.max(0, linha.feitas - linha.acertos);
-                const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
-                const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
-                const detalhe = calcularDetalhes(linha, idx, filtradas);
-                const badgeClass = {
-                    'PENDENTE': 'badge-pendente',
-                    'HORA DE PRATICAR': 'badge-praticar',
-                    'ABAIXO DA META': 'badge-abaixo',
-                    'REVISAR (Erro alto)': 'badge-revisar',
-                    'REVISAR (15 dias)': 'badge-tempo',
-                    'DOMINADO': 'badge-dominado'
-                }[statusText] || 'badge-pendente';
-                const statusHtml = `<span class="badge ${badgeClass}">${statusText}</span>`;
-                const detalheCor = detalhe.classe.includes('bom') ? 'var(--success)' :
-                                   detalhe.classe.includes('lento') ? 'var(--warning)' :
-                                   detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
-                const cells = tr.querySelectorAll('td');
-                if (cells.length >= 11) {
-                    cells[5].textContent = erros;
-                    const percContainer = cells[6];
-                    const spanPerc = percContainer.querySelector('span');
-                    const barraPerc = percContainer.querySelector('.bar .fill');
-                    if (spanPerc) spanPerc.textContent = perc.toFixed(0) + '%';
-                    if (barraPerc) {
-                        barraPerc.style.width = Math.min(100, perc) + '%';
-                        barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
-                    }
-                    cells[8].innerHTML = statusHtml;
-                    const detalheCell = cells[9];
-                    detalheCell.textContent = detalhe.texto;
-                    detalheCell.style.color = detalheCor;
-                    const feitasCell = cells[3];
-                    const progressContainer = feitasCell.querySelector('.progress-inline');
-                    if (progressContainer) {
-                        const spanFeitas = progressContainer.querySelector('span:first-child');
-                        const barraFeitas = progressContainer.querySelector('.bar .fill');
-                        const inputFeitas = progressContainer.querySelector('input[data-field="feitas"]');
-                        if (spanFeitas) spanFeitas.textContent = linha.feitas;
-                        if (barraFeitas) {
-                            const p = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
-                            barraFeitas.style.width = p + '%';
-                            barraFeitas.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
-                        }
-                        if (inputFeitas && Number(inputFeitas.value) !== linha.feitas) {
-                            inputFeitas.value = linha.feitas;
-                        }
-                    }
-                    const metaInput = tr.querySelector('input[data-field="meta"]');
-                    if (metaInput) metaInput.value = linha.meta;
-                    const acertosInput = tr.querySelector('input[data-field="acertos"]');
-                    if (acertosInput) acertosInput.value = linha.acertos;
-                    const dataInput = tr.querySelector('input[data-field="data"]');
-                    if (dataInput) dataInput.value = linha.data;
-                    const assuntoInput = tr.querySelector('input[data-field="assunto"]');
-                    if (assuntoInput) assuntoInput.value = linha.assunto;
-                    const semanaInput = tr.querySelector('input[data-field="semana"]');
-                    if (semanaInput) semanaInput.value = linha.semana;
-                }
-            }
-        }
-        // Atualiza card (mobile)
         const card = cardsContainer.querySelector(`.card-item[data-id="${id}"]`);
-        if (card) {
-            const filtradas = getLinhasOrdenadasEFiltradas();
-            const idx = filtradas.findIndex(l => l.id === id);
-            if (idx === -1) { card.remove(); } else {
-                const novoCard = criarCardElement(linha, idx, filtradas);
-                card.replaceWith(novoCard);
+        if (!card) return;
+
+        const filtradas = getLinhasOrdenadasEFiltradas();
+        const idx = filtradas.findIndex(l => l.id === id);
+        if (idx === -1) { card.remove(); return; }
+
+        const statusObj = calcularStatus(linha);
+        const statusText = statusObj.status;
+        const erros = Math.max(0, linha.feitas - linha.acertos);
+        const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
+        const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+        const detalhe = calcularDetalhes(linha, idx, filtradas);
+
+        const badgeClass = {
+            'PENDENTE': 'badge-pendente',
+            'HORA DE PRATICAR': 'badge-praticar',
+            'ABAIXO DA META': 'badge-abaixo',
+            'REVISAR (Erro alto)': 'badge-revisar',
+            'REVISAR (15 dias)': 'badge-tempo',
+            'DOMINADO': 'badge-dominado'
+        }[statusText] || 'badge-pendente';
+
+        // Atualiza campos específicos sem recriar o card
+        const inputs = card.querySelectorAll('input');
+        inputs.forEach(input => {
+            const field = input.dataset.field;
+            if (field) {
+                let value = linha[field];
+                if (value === undefined) return;
+                if (field === 'data') value = value || '';
+                input.value = value;
+            }
+        });
+
+        // Atualiza erros
+        const errosSpan = card.querySelector('.card-row:nth-child(6) .value');
+        if (errosSpan) errosSpan.textContent = erros;
+
+        // Atualiza % acerto
+        const percContainer = card.querySelector('.card-row:nth-child(7) .value .input-group');
+        if (percContainer) {
+            const percSpan = percContainer.querySelector('span:first-child');
+            const barFill = percContainer.querySelector('.bar .fill');
+            if (percSpan) percSpan.textContent = perc.toFixed(0) + '%';
+            if (barFill) {
+                barFill.style.width = Math.min(100, perc) + '%';
+                barFill.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
             }
         }
+
+        // Atualiza barra de progresso em "Feitas"
+        const feitasContainer = card.querySelector('.card-row:nth-child(4) .value .input-group');
+        if (feitasContainer) {
+            const barFill = feitasContainer.querySelector('.bar .fill');
+            if (barFill) {
+                const p = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+                barFill.style.width = p + '%';
+                barFill.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
+            }
+        }
+
+        // Atualiza status
+        const statusSpan = card.querySelector('.card-row:nth-child(9) .value .badge');
+        if (statusSpan) {
+            statusSpan.textContent = statusText;
+            statusSpan.className = 'badge ' + badgeClass;
+        }
+
+        // Atualiza detalhes
+        const detalheSpan = card.querySelector('.card-row:nth-child(10) .value');
+        if (detalheSpan) {
+            detalheSpan.textContent = detalhe.texto;
+            const cor = detalhe.classe.includes('bom') ? 'var(--success)' :
+                        detalhe.classe.includes('lento') ? 'var(--warning)' :
+                        detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
+            detalheSpan.style.color = cor;
+        }
+    }
+
+    // ===== ATUALIZAR TABELA EXISTENTE =====
+    function atualizarTabelaExistente(id) {
+        const linha = linhas.find(l => l.id === id);
+        if (!linha) return;
+        const tr = tbody.querySelector(`tr[data-id="${id}"]`);
+        if (!tr) return;
+
+        const filtradas = getLinhasOrdenadasEFiltradas();
+        const idx = filtradas.findIndex(l => l.id === id);
+        if (idx === -1) { tr.remove(); return; }
+
+        const statusObj = calcularStatus(linha);
+        const statusText = statusObj.status;
+        const erros = Math.max(0, linha.feitas - linha.acertos);
+        const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
+        const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+        const detalhe = calcularDetalhes(linha, idx, filtradas);
+
+        const badgeClass = {
+            'PENDENTE': 'badge-pendente',
+            'HORA DE PRATICAR': 'badge-praticar',
+            'ABAIXO DA META': 'badge-abaixo',
+            'REVISAR (Erro alto)': 'badge-revisar',
+            'REVISAR (15 dias)': 'badge-tempo',
+            'DOMINADO': 'badge-dominado'
+        }[statusText] || 'badge-pendente';
+
+        const statusHtml = `<span class="badge ${badgeClass}">${statusText}</span>`;
+        const detalheCor = detalhe.classe.includes('bom') ? 'var(--success)' :
+                           detalhe.classe.includes('lento') ? 'var(--warning)' :
+                           detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
+
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 11) return;
+
+        // Atualiza inputs
+        const inputs = tr.querySelectorAll('input');
+        inputs.forEach(input => {
+            const field = input.dataset.field;
+            if (field) {
+                let value = linha[field];
+                if (value === undefined) return;
+                if (field === 'data') value = value || '';
+                input.value = value;
+            }
+        });
+
+        // Erros
+        cells[5].textContent = erros;
+
+        // % Acerto
+        const percContainer = cells[6];
+        const spanPerc = percContainer.querySelector('span');
+        const barraPerc = percContainer.querySelector('.bar .fill');
+        if (spanPerc) spanPerc.textContent = perc.toFixed(0) + '%';
+        if (barraPerc) {
+            barraPerc.style.width = Math.min(100, perc) + '%';
+            barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
+        }
+
+        // Status
+        cells[8].innerHTML = statusHtml;
+
+        // Detalhes
+        const detalheCell = cells[9];
+        detalheCell.textContent = detalhe.texto;
+        detalheCell.style.color = detalheCor;
+
+        // Barra de progresso em Feitas
+        const feitasCell = cells[3];
+        const progressContainer = feitasCell.querySelector('.progress-inline');
+        if (progressContainer) {
+            const spanFeitas = progressContainer.querySelector('span:first-child');
+            const barraFeitas = progressContainer.querySelector('.bar .fill');
+            if (spanFeitas) spanFeitas.textContent = linha.feitas;
+            if (barraFeitas) {
+                const p = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+                barraFeitas.style.width = p + '%';
+                barraFeitas.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
+            }
+        }
+    }
+
+    // ===== ATUALIZAR LINHA (chamada pelos eventos) =====
+    function atualizarLinhaDOM(id) {
+        // Atualiza tabela e card sem recriar
+        atualizarTabelaExistente(id);
+        atualizarCardExistente(id);
     }
 
     // ===== GRÁFICOS =====
@@ -723,10 +813,13 @@
         else if (field === 'acertos') linha.acertos = Number(value);
         else if (field === 'data') linha.data = value;
         salvarDados();
+        // Atualiza apenas a linha no DOM (sem recriar)
         atualizarLinhaDOM(id);
+        // Atualiza estatísticas e revisões
         const filtradas = getLinhasOrdenadasEFiltradas();
         atualizarEstatisticas(filtradas);
         atualizarRevisaoList(filtradas);
+        // Atualiza gráfico se estiver ativo
         if (currentMode === 'chart') renderizarGrafico(filtradas, currentChartType);
         if (currentMode === 'flashcard') renderizarFlashcards(filtradas);
     }
@@ -840,7 +933,7 @@
             atualizarLinhaDados(id, field, value);
         });
 
-        // Inputs nos cards (mobile)
+        // Inputs nos cards (mobile) – agora sem recriar o card
         cardsContainer.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
@@ -853,17 +946,16 @@
             atualizarLinhaDados(id, field, value);
         });
 
-        // ROLAGEM SUAVE PARA INPUTS EM CARDS (mobile)
+        // Rolagem suave para inputs em cards (mobile)
         cardsContainer.addEventListener('focusin', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-                // Pequeno atraso para garantir que o teclado já abriu
                 setTimeout(() => {
                     e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }, 300);
             }
         });
 
-        // Delete buttons (tabela e cards)
+        // Delete buttons
         tbody.addEventListener('click', (e) => {
             const btn = e.target.closest('.delete-btn');
             if (btn) removerLinha(parseInt(btn.dataset.id, 10));
