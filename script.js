@@ -220,7 +220,7 @@
         return tr;
     }
 
-    // ===== CARDS (Mobile - editáveis) =====
+    // ===== CARDS (Mobile – com inputs interativos) =====
     function renderizarCards(filtradas) {
         cardsContainer.innerHTML = '';
         if (filtradas.length === 0) {
@@ -336,7 +336,6 @@
             const filtradas = getLinhasOrdenadasEFiltradas();
             const idx = filtradas.findIndex(l => l.id === id);
             if (idx === -1) { tr.remove(); } else {
-                // atualiza células
                 const statusObj = calcularStatus(linha);
                 const statusText = statusObj.status;
                 const erros = Math.max(0, linha.feitas - linha.acertos);
@@ -841,7 +840,7 @@
             atualizarLinhaDados(id, field, value);
         });
 
-        // Inputs nos cards (NOVO)
+        // Inputs nos cards (mobile)
         cardsContainer.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
@@ -852,6 +851,16 @@
             let value = input.value;
             if (['semana','meta','feitas','acertos'].includes(field)) value = parseFloat(value) || 0;
             atualizarLinhaDados(id, field, value);
+        });
+
+        // ROLAGEM SUAVE PARA INPUTS EM CARDS (mobile)
+        cardsContainer.addEventListener('focusin', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+                // Pequeno atraso para garantir que o teclado já abriu
+                setTimeout(() => {
+                    e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }, 300);
+            }
         });
 
         // Delete buttons (tabela e cards)
