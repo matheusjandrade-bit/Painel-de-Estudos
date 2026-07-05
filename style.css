@@ -33,7 +33,7 @@
     --accent-glow: rgba(107,142,255,0.25);
 }
 
-/* ===== Reset ===== */
+/* ===== Reset e base ===== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
@@ -553,17 +553,48 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-gl
     box-shadow: 0 4px 12px rgba(0,0,0,0.04);
     transition: 0.2s;
 }
-.card-item:active { transform: scale(0.98); }
-.card-item .card-row {
+.card-item:active { transform: scale(0.99); }
+.card-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    padding: 6px 0;
     font-size: 0.85rem;
+    gap: 8px;
 }
-.card-item .card-row .label { color: var(--text-muted); font-weight: 500; }
-.card-item .card-row .value { font-weight: 600; color: var(--text-primary); }
-.card-item .card-actions {
+.card-row .label {
+    color: var(--text-muted);
+    font-weight: 500;
+    min-width: 70px;
+    flex-shrink: 0;
+}
+.card-row .value {
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    text-align: right;
+}
+.card-row .value input,
+.card-row .value select {
+    width: 100%;
+    padding: 8px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-align: center;
+    min-height: 40px;
+    transition: 0.15s;
+}
+.card-row .value input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.card-row .value input[type="number"] { width: 70px; text-align: center; }
+.card-row .value input[type="date"] { text-align: center; }
+.card-row .value .badge { font-size: 0.7rem; padding: 4px 12px; }
+.card-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
@@ -571,7 +602,42 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-gl
     border-top: 1px solid var(--border-color);
     padding-top: 10px;
 }
-.card-item .card-actions .delete-btn { background: rgba(239,68,68,0.08); }
+.card-actions .delete-btn {
+    background: rgba(239,68,68,0.08);
+    padding: 8px 16px;
+    border-radius: 30px;
+    border: none;
+    color: var(--danger);
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    min-height: var(--touch-target);
+}
+.card-actions .delete-btn:active { transform: scale(0.94); }
+
+/* Inputs com largura fixa para números */
+.card-row .value .input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+}
+.card-row .value .input-group input[type="number"] {
+    width: 60px;
+}
+.card-row .value .input-group .bar {
+    width: 40px;
+    height: 5px;
+    background: var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    display: inline-block;
+}
+.card-row .value .input-group .bar .fill {
+    height: 100%;
+    border-radius: 20px;
+    display: block;
+}
 
 /* ===== GRÁFICOS ===== */
 .chart-view { display: none; padding: 12px 0; animation: fadeUp 0.5s ease; }

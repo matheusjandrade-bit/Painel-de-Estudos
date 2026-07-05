@@ -220,7 +220,7 @@
         return tr;
     }
 
-    // ===== CARDS (Mobile) =====
+    // ===== CARDS (Mobile - editáveis) =====
     function renderizarCards(filtradas) {
         cardsContainer.innerHTML = '';
         if (filtradas.length === 0) {
@@ -228,53 +228,105 @@
             return;
         }
         filtradas.forEach((linha, idx) => {
-            const statusObj = calcularStatus(linha);
-            const statusText = statusObj.status;
-            const erros = Math.max(0, linha.feitas - linha.acertos);
-            const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
-            const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
-            const detalhe = calcularDetalhes(linha, idx, filtradas);
-
-            const badgeClass = {
-                'PENDENTE': 'badge-pendente',
-                'HORA DE PRATICAR': 'badge-praticar',
-                'ABAIXO DA META': 'badge-abaixo',
-                'REVISAR (Erro alto)': 'badge-revisar',
-                'REVISAR (15 dias)': 'badge-tempo',
-                'DOMINADO': 'badge-dominado'
-            }[statusText] || 'badge-pendente';
-
-            const card = document.createElement('div');
-            card.className = 'card-item';
-            card.dataset.id = linha.id;
-            card.innerHTML = `
-                <div class="card-row"><span class="label">Semana</span><span class="value">${linha.semana}</span></div>
-                <div class="card-row"><span class="label">Assunto</span><span class="value">${linha.assunto || '—'}</span></div>
-                <div class="card-row"><span class="label">Meta / Feitas</span><span class="value">${linha.meta} / ${linha.feitas}</span></div>
-                <div class="card-row"><span class="label">Acertos / Erros</span><span class="value">${linha.acertos} / ${erros}</span></div>
-                <div class="card-row">
-                    <span class="label">% Acerto</span>
-                    <span class="value">
-                        <span style="display:inline-flex;align-items:center;gap:4px;">
-                            ${perc.toFixed(0)}%
-                            <span class="bar" style="width:50px;height:5px;background:var(--border-color);border-radius:20px;overflow:hidden;display:inline-block;">
-                                <span class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%;height:100%;display:block;border-radius:20px;"></span>
-                            </span>
-                        </span>
-                    </span>
-                </div>
-                <div class="card-row"><span class="label">Data</span><span class="value">${linha.data || '—'}</span></div>
-                <div class="card-row"><span class="label">Status</span><span class="value"><span class="badge ${badgeClass}">${statusText}</span></span></div>
-                <div class="card-row"><span class="label">Detalhes</span><span class="value" style="font-size:0.8rem;color:${detalhe.classe.includes('bom') ? 'var(--success)' : detalhe.classe.includes('lento') ? 'var(--warning)' : detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)'}">${detalhe.texto}</span></div>
-                <div class="card-actions">
-                    <button class="delete-btn" data-id="${linha.id}" aria-label="Remover"><i class="fas fa-trash-alt" aria-hidden="true"></i> Remover</button>
-                </div>
-            `;
+            const card = criarCardElement(linha, idx, filtradas);
             cardsContainer.appendChild(card);
         });
     }
 
-    // ===== ATUALIZAR LINHA =====
+    function criarCardElement(linha, idx, filtradas) {
+        const statusObj = calcularStatus(linha);
+        const statusText = statusObj.status;
+        const erros = Math.max(0, linha.feitas - linha.acertos);
+        const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
+        const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+        const detalhe = calcularDetalhes(linha, idx, filtradas);
+
+        const badgeClass = {
+            'PENDENTE': 'badge-pendente',
+            'HORA DE PRATICAR': 'badge-praticar',
+            'ABAIXO DA META': 'badge-abaixo',
+            'REVISAR (Erro alto)': 'badge-revisar',
+            'REVISAR (15 dias)': 'badge-tempo',
+            'DOMINADO': 'badge-dominado'
+        }[statusText] || 'badge-pendente';
+
+        const card = document.createElement('div');
+        card.className = 'card-item';
+        card.dataset.id = linha.id;
+
+        card.innerHTML = `
+            <div class="card-row">
+                <span class="label">Semana</span>
+                <span class="value">
+                    <input type="number" value="${linha.semana}" data-field="semana" data-id="${linha.id}" min="1" inputmode="numeric">
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Assunto</span>
+                <span class="value">
+                    <input type="text" value="${linha.assunto || ''}" data-field="assunto" data-id="${linha.id}" placeholder="Assunto">
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Meta</span>
+                <span class="value">
+                    <input type="number" value="${linha.meta}" data-field="meta" data-id="${linha.id}" min="0" inputmode="numeric">
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Feitas</span>
+                <span class="value">
+                    <div class="input-group">
+                        <input type="number" value="${linha.feitas}" data-field="feitas" data-id="${linha.id}" min="0" inputmode="numeric">
+                        <span class="bar">
+                            <span class="fill ${progressFeitas < 50 ? 'red' : progressFeitas < 75 ? 'orange' : 'green'}" style="width:${progressFeitas}%"></span>
+                        </span>
+                    </div>
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Acertos</span>
+                <span class="value">
+                    <input type="number" value="${linha.acertos}" data-field="acertos" data-id="${linha.id}" min="0" inputmode="numeric">
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Erros</span>
+                <span class="value">${erros}</span>
+            </div>
+            <div class="card-row">
+                <span class="label">% Acerto</span>
+                <span class="value">
+                    <div class="input-group">
+                        <span>${perc.toFixed(0)}%</span>
+                        <span class="bar">
+                            <span class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%"></span>
+                        </span>
+                    </div>
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Data</span>
+                <span class="value">
+                    <input type="date" value="${linha.data || ''}" data-field="data" data-id="${linha.id}">
+                </span>
+            </div>
+            <div class="card-row">
+                <span class="label">Status</span>
+                <span class="value"><span class="badge ${badgeClass}">${statusText}</span></span>
+            </div>
+            <div class="card-row">
+                <span class="label">Detalhes</span>
+                <span class="value" style="font-size:0.8rem;color:${detalhe.classe.includes('bom') ? 'var(--success)' : detalhe.classe.includes('lento') ? 'var(--warning)' : detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)'}">${detalhe.texto}</span>
+            </div>
+            <div class="card-actions">
+                <button class="delete-btn" data-id="${linha.id}" aria-label="Remover"><i class="fas fa-trash-alt" aria-hidden="true"></i> Remover</button>
+            </div>
+        `;
+        return card;
+    }
+
+    // ===== ATUALIZAR LINHA (tabela e cards) =====
     function atualizarLinhaDOM(id) {
         const linha = linhas.find(l => l.id === id);
         if (!linha) return;
@@ -284,7 +336,7 @@
             const filtradas = getLinhasOrdenadasEFiltradas();
             const idx = filtradas.findIndex(l => l.id === id);
             if (idx === -1) { tr.remove(); } else {
-                // atualiza células (mesmo código de antes)
+                // atualiza células
                 const statusObj = calcularStatus(linha);
                 const statusText = statusObj.status;
                 const erros = Math.max(0, linha.feitas - linha.acertos);
@@ -347,10 +399,9 @@
                 }
             }
         }
-        // Atualiza cards (mobile)
+        // Atualiza card (mobile)
         const card = cardsContainer.querySelector(`.card-item[data-id="${id}"]`);
         if (card) {
-            // Recria o card (simples, mas eficaz)
             const filtradas = getLinhasOrdenadasEFiltradas();
             const idx = filtradas.findIndex(l => l.id === id);
             if (idx === -1) { card.remove(); } else {
@@ -358,50 +409,6 @@
                 card.replaceWith(novoCard);
             }
         }
-    }
-
-    function criarCardElement(linha, idx, filtradas) {
-        const statusObj = calcularStatus(linha);
-        const statusText = statusObj.status;
-        const erros = Math.max(0, linha.feitas - linha.acertos);
-        const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
-        const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
-        const detalhe = calcularDetalhes(linha, idx, filtradas);
-        const badgeClass = {
-            'PENDENTE': 'badge-pendente',
-            'HORA DE PRATICAR': 'badge-praticar',
-            'ABAIXO DA META': 'badge-abaixo',
-            'REVISAR (Erro alto)': 'badge-revisar',
-            'REVISAR (15 dias)': 'badge-tempo',
-            'DOMINADO': 'badge-dominado'
-        }[statusText] || 'badge-pendente';
-        const card = document.createElement('div');
-        card.className = 'card-item';
-        card.dataset.id = linha.id;
-        card.innerHTML = `
-            <div class="card-row"><span class="label">Semana</span><span class="value">${linha.semana}</span></div>
-            <div class="card-row"><span class="label">Assunto</span><span class="value">${linha.assunto || '—'}</span></div>
-            <div class="card-row"><span class="label">Meta / Feitas</span><span class="value">${linha.meta} / ${linha.feitas}</span></div>
-            <div class="card-row"><span class="label">Acertos / Erros</span><span class="value">${linha.acertos} / ${erros}</span></div>
-            <div class="card-row">
-                <span class="label">% Acerto</span>
-                <span class="value">
-                    <span style="display:inline-flex;align-items:center;gap:4px;">
-                        ${perc.toFixed(0)}%
-                        <span class="bar" style="width:50px;height:5px;background:var(--border-color);border-radius:20px;overflow:hidden;display:inline-block;">
-                            <span class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%;height:100%;display:block;border-radius:20px;"></span>
-                        </span>
-                    </span>
-                </span>
-            </div>
-            <div class="card-row"><span class="label">Data</span><span class="value">${linha.data || '—'}</span></div>
-            <div class="card-row"><span class="label">Status</span><span class="value"><span class="badge ${badgeClass}">${statusText}</span></span></div>
-            <div class="card-row"><span class="label">Detalhes</span><span class="value" style="font-size:0.8rem;color:${detalhe.classe.includes('bom') ? 'var(--success)' : detalhe.classe.includes('lento') ? 'var(--warning)' : detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)'}">${detalhe.texto}</span></div>
-            <div class="card-actions">
-                <button class="delete-btn" data-id="${linha.id}" aria-label="Remover"><i class="fas fa-trash-alt" aria-hidden="true"></i> Remover</button>
-            </div>
-        `;
-        return card;
     }
 
     // ===== GRÁFICOS =====
@@ -418,7 +425,6 @@
             chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
             return;
         }
-        // === CORREÇÃO: remove duplicatas pelo assunto ===
         const unicos = new Map();
         filtradas.filter(l => l.feitas > 0).forEach(l => {
             const key = l.assunto || 'Sem assunto';
@@ -456,7 +462,6 @@
             chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-line" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Precisa de pelo menos 2 semanas com dados.</div>';
             return;
         }
-        // Remove duplicatas de data (pega a primeira ocorrência)
         const dataMap = new Map();
         dados.forEach(l => {
             if (!dataMap.has(l.data)) dataMap.set(l.data, l);
@@ -666,7 +671,6 @@
             btn.classList.toggle('active', isActive);
             btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
-        // Mostrar/esconder menu toggle
         menuToggle.classList.toggle('hidden', currentMode === 'chart' || currentMode === 'flashcard');
     }
 
@@ -824,6 +828,7 @@
             th.addEventListener('click', () => { ordenarPor(th.dataset.sort); });
         });
 
+        // Inputs na tabela
         tbody.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
@@ -836,11 +841,24 @@
             atualizarLinhaDados(id, field, value);
         });
 
+        // Inputs nos cards (NOVO)
+        cardsContainer.addEventListener('input', (e) => {
+            const input = e.target;
+            if (input.tagName !== 'INPUT') return;
+            const id = parseInt(input.dataset.id, 10);
+            if (isNaN(id)) return;
+            const field = input.dataset.field;
+            if (!field) return;
+            let value = input.value;
+            if (['semana','meta','feitas','acertos'].includes(field)) value = parseFloat(value) || 0;
+            atualizarLinhaDados(id, field, value);
+        });
+
+        // Delete buttons (tabela e cards)
         tbody.addEventListener('click', (e) => {
             const btn = e.target.closest('.delete-btn');
             if (btn) removerLinha(parseInt(btn.dataset.id, 10));
         });
-
         cardsContainer.addEventListener('click', (e) => {
             const btn = e.target.closest('.delete-btn');
             if (btn) removerLinha(parseInt(btn.dataset.id, 10));
@@ -884,25 +902,21 @@
             });
         });
 
-        // Menu toggle e overlay
         menuToggle.addEventListener('click', () => toggleSidebar(true));
         overlay.addEventListener('click', () => toggleSidebar(false));
         closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
-
         themeToggle.addEventListener('click', toggleTheme);
         backToTop.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         window.addEventListener('scroll', handleScroll);
 
-        // Fechar sidebar com ESC
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && sidebar.classList.contains('open')) {
                 toggleSidebar(false);
             }
         });
 
-        // Redimensionamento: se voltar para desktop, fecha sidebar
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 769 && sidebar.classList.contains('open')) {
                 toggleSidebar(false);
@@ -915,7 +929,6 @@
         carregarDados();
         carregarTema();
         renderizarCompleto();
-        // Sidebar começa fechada no mobile
         if (window.innerWidth <= 768) {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
