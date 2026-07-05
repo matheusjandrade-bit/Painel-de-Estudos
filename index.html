@@ -2,67 +2,70 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Estudos · Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="app">
+<div class="app" role="application" aria-label="Painel de estudos">
+
     <!-- ===== SIDEBAR ===== -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Painel lateral">
         <div class="sidebar-header">
-            <h2><i class="fas fa-list-check"></i> Revisões</h2>
-            <button class="sidebar-close" id="closeSidebar"><i class="fas fa-times"></i></button>
+            <h2><i class="fas fa-list-check" aria-hidden="true"></i> Revisões</h2>
+            <button class="sidebar-close" id="closeSidebar" aria-label="Fechar painel lateral">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
         </div>
-        <ul class="revisao-list" id="revisaoList">
-            <li class="revisao-empty"><i class="fas fa-check-circle"></i> Nenhum assunto a revisar</li>
+        <ul class="revisao-list" id="revisaoList" role="list" aria-label="Lista de assuntos a revisar">
+            <li class="revisao-empty" role="listitem"><i class="fas fa-check-circle" aria-hidden="true"></i> Nenhum assunto a revisar</li>
         </ul>
 
         <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-            <div class="mode-toggle">
-                <button class="active" data-mode="table"><i class="fas fa-table"></i> Tabela</button>
-                <button data-mode="chart"><i class="fas fa-chart-bar"></i> Gráfico</button>
-                <button data-mode="flashcard"><i class="fas fa-brain"></i> Análise</button>
+            <div class="mode-toggle" role="group" aria-label="Alternar modo de visualização">
+                <button class="active" data-mode="table" aria-pressed="true"><i class="fas fa-table" aria-hidden="true"></i> Tabela</button>
+                <button data-mode="chart" aria-pressed="false"><i class="fas fa-chart-bar" aria-hidden="true"></i> Gráfico</button>
+                <button data-mode="flashcard" aria-pressed="false"><i class="fas fa-brain" aria-hidden="true"></i> Análise</button>
             </div>
         </div>
 
         <div class="chart-options">
-            <label><i class="fas fa-chart-pie"></i> Tipo de gráfico</label>
-            <div class="option-group" id="chartTypeGroup">
-                <button class="active" data-chart="bars"><i class="fas fa-chart-bar"></i> Barras</button>
-                <button data-chart="line"><i class="fas fa-chart-line"></i> Linha</button>
-                <button data-chart="pie"><i class="fas fa-chart-pie"></i> Pizza</button>
+            <label><i class="fas fa-chart-pie" aria-hidden="true"></i> Tipo de gráfico</label>
+            <div class="option-group" id="chartTypeGroup" role="group" aria-label="Tipo de gráfico">
+                <button class="active" data-chart="bars" aria-pressed="true"><i class="fas fa-chart-bar" aria-hidden="true"></i> Barras</button>
+                <button data-chart="line" aria-pressed="false"><i class="fas fa-chart-line" aria-hidden="true"></i> Linha</button>
+                <button data-chart="pie" aria-pressed="false"><i class="fas fa-chart-pie" aria-hidden="true"></i> Pizza</button>
             </div>
         </div>
 
         <div class="theme-toggle-wrap">
-            <label><i class="fas fa-moon"></i> Modo escuro</label>
-            <button class="theme-switch" id="themeToggle" aria-label="Alternar tema">
+            <label for="themeToggle"><i class="fas fa-moon" aria-hidden="true"></i> Modo escuro</label>
+            <button class="theme-switch" id="themeToggle" role="switch" aria-checked="false" aria-label="Alternar tema claro/escuro">
                 <span class="thumb"></span>
             </button>
         </div>
 
         <div style="margin-top: 16px; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
-            <i class="fas fa-database"></i> Dados salvos localmente
+            <i class="fas fa-database" aria-hidden="true"></i> Dados salvos localmente
         </div>
     </aside>
 
     <!-- ===== CONTEÚDO PRINCIPAL ===== -->
-    <main class="main-content">
+    <main class="main-content" role="main" aria-label="Conteúdo principal">
         <!-- Stats -->
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card delay-1"><div class="value" id="totalCount">0</div><div class="label">📌 Total</div></div>
-            <div class="stat-card delay-2"><div class="value" id="dominatedCount">0</div><div class="label">✅ Dominados</div></div>
-            <div class="stat-card delay-3"><div class="value" id="revisionCount">0</div><div class="label">⚠️ Revisões</div></div>
-            <div class="stat-card delay-4"><div class="value" id="avgAccuracy">0%</div><div class="label">📊 Média Acertos</div></div>
+        <div class="stats-grid" id="statsGrid" role="list" aria-label="Estatísticas rápidas">
+            <div class="stat-card delay-1" role="listitem"><div class="value" id="totalCount">0</div><div class="label">📌 Total</div></div>
+            <div class="stat-card delay-2" role="listitem"><div class="value" id="dominatedCount">0</div><div class="label">✅ Dominados</div></div>
+            <div class="stat-card delay-3" role="listitem"><div class="value" id="revisionCount">0</div><div class="label">⚠️ Revisões</div></div>
+            <div class="stat-card delay-4" role="listitem"><div class="value" id="avgAccuracy">0%</div><div class="label">📊 Média Acertos</div></div>
         </div>
 
         <!-- Toolbar -->
-        <div class="toolbar">
-            <input type="text" id="searchInput" placeholder="🔍 Buscar assunto..." style="flex:1; min-width:120px;">
-            <select id="statusFilter">
+        <div class="toolbar" role="toolbar" aria-label="Ferramentas">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar assunto..." style="flex:1; min-width:120px;" aria-label="Buscar assunto">
+            <select id="statusFilter" aria-label="Filtrar por status">
                 <option value="all">Todos os status</option>
                 <option value="PENDENTE">Pendente</option>
                 <option value="HORA DE PRATICAR">Praticar</option>
@@ -72,31 +75,31 @@
                 <option value="DOMINADO">Dominado</option>
             </select>
             <div class="btn-group">
-                <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus"></i> Adicionar</button>
-                <button class="btn btn-success" id="exportBtn"><i class="fas fa-download"></i></button>
-                <button class="btn btn-warning" id="importBtn"><i class="fas fa-upload"></i></button>
-                <input type="file" id="fileInput" accept=".json" style="display:none;">
-                <button class="btn btn-danger" id="clearBtn"><i class="fas fa-trash-alt"></i></button>
+                <button class="btn btn-primary" id="addBtn" aria-label="Adicionar nova semana"><i class="fas fa-plus" aria-hidden="true"></i> Adicionar</button>
+                <button class="btn btn-success" id="exportBtn" aria-label="Exportar dados"><i class="fas fa-download" aria-hidden="true"></i></button>
+                <button class="btn btn-warning" id="importBtn" aria-label="Importar dados"><i class="fas fa-upload" aria-hidden="true"></i></button>
+                <input type="file" id="fileInput" accept=".json" style="display:none;" aria-label="Arquivo de importação">
+                <button class="btn btn-danger" id="clearBtn" aria-label="Limpar todos os dados"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
             </div>
         </div>
 
         <!-- Modo Tabela -->
-        <div class="table-view" id="tableView">
-            <div class="table-wrapper">
+        <div class="table-view" id="tableView" role="region" aria-label="Tabela de dados">
+            <div class="table-wrapper" tabindex="0" role="table" aria-label="Tabela de estudos">
                 <table>
                     <thead>
                         <tr>
-                            <th data-sort="semana">Semana <i class="fas fa-sort"></i></th>
-                            <th data-sort="assunto">Assunto <i class="fas fa-sort"></i></th>
-                            <th data-sort="meta">Meta <i class="fas fa-sort"></i></th>
-                            <th data-sort="feitas">Feitas <i class="fas fa-sort"></i></th>
-                            <th data-sort="acertos">Acertos <i class="fas fa-sort"></i></th>
-                            <th>Erros</th>
-                            <th>% Acerto</th>
-                            <th data-sort="data">Data <i class="fas fa-sort"></i></th>
-                            <th>Status</th>
-                            <th>Detalhes</th>
-                            <th>Ações</th>
+                            <th data-sort="semana" scope="col" role="columnheader" aria-sort="none">Semana <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th data-sort="assunto" scope="col" role="columnheader" aria-sort="none">Assunto <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th data-sort="meta" scope="col" role="columnheader" aria-sort="none">Meta <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th data-sort="feitas" scope="col" role="columnheader" aria-sort="none">Feitas <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th data-sort="acertos" scope="col" role="columnheader" aria-sort="none">Acertos <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th scope="col">Erros</th>
+                            <th scope="col">% Acerto</th>
+                            <th data-sort="data" scope="col" role="columnheader" aria-sort="none">Data <i class="fas fa-sort" aria-hidden="true"></i></th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Detalhes</th>
+                            <th scope="col">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="corpo-tabela"></tbody>
@@ -105,26 +108,29 @@
         </div>
 
         <!-- Modo Gráfico -->
-        <div class="chart-view" id="chartView">
+        <div class="chart-view" id="chartView" role="region" aria-label="Gráficos de desempenho">
             <div id="chartContainer" class="chart-container"></div>
         </div>
 
         <!-- Modo Flashcards (Análise) -->
-        <div class="flashcard-view" id="flashcardView">
+        <div class="flashcard-view" id="flashcardView" role="region" aria-label="Análise de desempenho">
             <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-                <i class="fas fa-brain" style="font-size:1.8rem; color:var(--accent);"></i>
+                <i class="fas fa-brain" style="font-size:1.8rem; color:var(--accent);" aria-hidden="true"></i>
                 <h3 style="color:var(--text-primary); font-weight:600;">Análise de Desempenho</h3>
             </div>
-            <div class="flashcard-grid" id="flashcardGrid">
-                <!-- preenchido via JS -->
-            </div>
+            <div class="flashcard-grid" id="flashcardGrid" role="list" aria-label="Cartões de análise"></div>
         </div>
     </main>
 </div>
 
 <!-- Botão flutuante -->
-<button class="sidebar-toggle-btn" id="sidebarToggle">
-    <i class="fas fa-chevron-right"></i>
+<button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Abrir/fechar painel lateral">
+    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+</button>
+
+<!-- Botão "Voltar ao topo" (mobile) -->
+<button class="back-to-top" id="backToTop" aria-label="Voltar ao topo">
+    <i class="fas fa-arrow-up" aria-hidden="true"></i>
 </button>
 
 <script src="script.js"></script>

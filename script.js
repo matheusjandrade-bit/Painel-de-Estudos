@@ -8,7 +8,7 @@
     let sortAsc = true;
     let filtroAssunto = '';
     let filtroStatus = 'all';
-    let currentMode = 'table';     // 'table' | 'chart' | 'flashcard'
+    let currentMode = 'table';
     let currentChartType = 'bars';
     let sidebarOpen = true;
     let darkMode = false;
@@ -31,8 +31,9 @@
     const sidebarToggle = document.getElementById('sidebarToggle');
     const closeSidebarBtn = document.getElementById('closeSidebar');
     const themeToggle = document.getElementById('themeToggle');
+    const backToTop = document.getElementById('backToTop');
 
-    // ===== FUNÇÕES AUXILIARES =====
+    // ===== FUNÇÕES AUXILIARES (mesmas de antes) =====
     function diffDias(d1, d2) {
         if (!d1 || !d2) return null;
         const a = new Date(d1), b = new Date(d2);
@@ -109,10 +110,12 @@
             darkMode = true;
             document.documentElement.setAttribute('data-theme', 'dark');
             themeToggle.querySelector('.thumb').style.left = '25px';
+            themeToggle.setAttribute('aria-checked', 'true');
         } else {
             darkMode = false;
             document.documentElement.removeAttribute('data-theme');
             themeToggle.querySelector('.thumb').style.left = '3px';
+            themeToggle.setAttribute('aria-checked', 'false');
         }
     }
 
@@ -189,17 +192,17 @@
                            detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
 
         tr.innerHTML = `
-            <td><input type="number" value="${linha.semana}" data-field="semana" data-id="${linha.id}" min="1"></td>
+            <td><input type="number" value="${linha.semana}" data-field="semana" data-id="${linha.id}" min="1" inputmode="numeric"></td>
             <td><input type="text" value="${linha.assunto}" data-field="assunto" data-id="${linha.id}" placeholder="Assunto"></td>
-            <td><input type="number" value="${linha.meta}" data-field="meta" data-id="${linha.id}" min="0"></td>
+            <td><input type="number" value="${linha.meta}" data-field="meta" data-id="${linha.id}" min="0" inputmode="numeric"></td>
             <td>
                 <div class="progress-inline">
                     <span>${linha.feitas}</span>
                     <div class="bar"><div class="fill ${progressFeitas < 50 ? 'red' : progressFeitas < 75 ? 'orange' : 'green'}" style="width:${progressFeitas}%"></div></div>
-                    <input type="number" value="${linha.feitas}" data-field="feitas" data-id="${linha.id}" min="0" style="width:50px;">
+                    <input type="number" value="${linha.feitas}" data-field="feitas" data-id="${linha.id}" min="0" inputmode="numeric" style="width:50px;">
                 </div>
             </td>
-            <td><input type="number" value="${linha.acertos}" data-field="acertos" data-id="${linha.id}" min="0"></td>
+            <td><input type="number" value="${linha.acertos}" data-field="acertos" data-id="${linha.id}" min="0" inputmode="numeric"></td>
             <td>${erros}</td>
             <td>
                 <div class="progress-inline">
@@ -207,10 +210,10 @@
                     <div class="bar"><div class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%"></div></div>
                 </div>
             </td>
-            <td><input type="date" value="${linha.data}" data-field="data" data-id="${linha.id}"></td>
+            <td><input type="date" value="${linha.data}" data-field="data" data-id="${linha.id}" inputmode="none"></td>
             <td>${statusHtml}</td>
             <td style="font-size:0.8rem; font-weight:500; color:${detalheCor}">${detalhe.texto}</td>
-            <td><button class="delete-btn" data-id="${linha.id}"><i class="fas fa-times"></i></button></td>
+            <td><button class="delete-btn" data-id="${linha.id}" aria-label="Remover linha"><i class="fas fa-times" aria-hidden="true"></i></button></td>
         `;
         return tr;
     }
@@ -249,10 +252,8 @@
         const cells = tr.querySelectorAll('td');
         if (cells.length < 11) return;
 
-        // Erros
         cells[5].textContent = erros;
 
-        // % Acerto
         const percContainer = cells[6];
         const spanPerc = percContainer.querySelector('span');
         const barraPerc = percContainer.querySelector('.bar .fill');
@@ -262,15 +263,12 @@
             barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
         }
 
-        // Status
         cells[8].innerHTML = statusHtml;
 
-        // Detalhes
         const detalheCell = cells[9];
         detalheCell.textContent = detalhe.texto;
         detalheCell.style.color = detalheCor;
 
-        // Feitas
         const feitasCell = cells[3];
         const progressContainer = feitasCell.querySelector('.progress-inline');
         if (progressContainer) {
@@ -288,7 +286,6 @@
             }
         }
 
-        // Inputs
         const metaInput = tr.querySelector('input[data-field="meta"]');
         if (metaInput) metaInput.value = linha.meta;
         const acertosInput = tr.querySelector('input[data-field="acertos"]');
@@ -301,7 +298,7 @@
         if (semanaInput) semanaInput.value = linha.semana;
     }
 
-    // ===== GRÁFICOS =====
+    // ===== GRÁFICOS (mesmos de antes, mantidos) =====
     function renderizarGrafico(filtradas, type) {
         if (type === 'bars') renderBars(filtradas);
         else if (type === 'line') renderLine(filtradas);
@@ -312,12 +309,12 @@
         chartContainer.className = 'chart-container';
         chartContainer.innerHTML = '';
         if (filtradas.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
             return;
         }
         const sorted = [...filtradas].filter(l => l.feitas > 0).sort((a,b) => (b.acertos/b.feitas) - (a.acertos/a.feitas));
         if (sorted.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado com exercícios feitos.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado com exercícios feitos.</div>';
             return;
         }
         sorted.forEach((linha, i) => {
@@ -342,7 +339,7 @@
         chartContainer.innerHTML = '';
         const dados = filtradas.filter(l => l.data && l.feitas > 0).sort((a,b) => a.data.localeCompare(b.data));
         if (dados.length < 2) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-chart-line" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Precisa de pelo menos 2 semanas com dados para exibir a evolução.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-line" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Precisa de pelo menos 2 semanas com dados.</div>';
             return;
         }
         const pontos = dados.map(l => ({
@@ -351,8 +348,8 @@
             data: l.data
         }));
         const width = Math.max(400, pontos.length * 60);
-        const height = 260;
-        const padding = 40;
+        const height = 240;
+        const padding = 35;
         const innerWidth = width - padding * 2;
         const innerHeight = height - padding * 2;
         const maxVal = 100;
@@ -362,7 +359,7 @@
         for (let g = 0; g <= 100; g += 25) {
             const y = height - padding - (g / maxVal) * innerHeight;
             svg += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="4,4"/>`;
-            svg += `<text x="${padding - 8}" y="${y + 4}" font-size="10" fill="var(--text-muted)" text-anchor="end">${g}%</text>`;
+            svg += `<text x="${padding - 6}" y="${y + 4}" font-size="9" fill="var(--text-muted)" text-anchor="end">${g}%</text>`;
         }
         const points = pontos.map((p, i) => {
             const x = padding + (i / (pontos.length - 1)) * innerWidth;
@@ -371,9 +368,9 @@
         });
         svg += `<polyline points="${points.map(p => p.x+','+p.y).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
         points.forEach((p, i) => {
-            svg += `<circle cx="${p.x}" cy="${p.y}" r="6" fill="var(--accent)" stroke="var(--bg-main)" stroke-width="2"/>`;
-            svg += `<text x="${p.x}" y="${height - padding + 16}" font-size="9" fill="var(--text-secondary)" text-anchor="middle" transform="rotate(-30, ${p.x}, ${height - padding + 16})">${p.label.length > 10 ? p.label.substr(0,8)+'…' : p.label}</text>`;
-            svg += `<text x="${p.x}" y="${p.y - 12}" font-size="9" fill="var(--text-primary)" text-anchor="middle" font-weight="600">${Math.round(p.perc)}%</text>`;
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="var(--accent)" stroke="var(--bg-main)" stroke-width="2"/>`;
+            svg += `<text x="${p.x}" y="${height - padding + 14}" font-size="8" fill="var(--text-secondary)" text-anchor="middle" transform="rotate(-30, ${p.x}, ${height - padding + 14})">${p.label.length > 8 ? p.label.substr(0,6)+'…' : p.label}</text>`;
+            svg += `<text x="${p.x}" y="${p.y - 10}" font-size="9" fill="var(--text-primary)" text-anchor="middle" font-weight="600">${Math.round(p.perc)}%</text>`;
         });
         svg += '</svg>';
         chartContainer.innerHTML = svg;
@@ -383,7 +380,7 @@
         chartContainer.className = 'chart-pie-container';
         chartContainer.innerHTML = '';
         if (filtradas.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-chart-pie" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-pie" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
             return;
         }
         const faixas = {
@@ -400,14 +397,14 @@
         });
         const entries = Object.entries(faixas).filter(([k,v]) => v.count > 0);
         if (entries.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;">Nenhum dado com exercícios feitos.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;">Nenhum dado com exercícios feitos.</div>';
             return;
         }
         const total = entries.reduce((sum, [k,v]) => sum + v.count, 0);
-        const size = 300;
-        const radius = 120;
+        const size = 260;
+        const radius = 100;
         const cx = size/2, cy = size/2;
-        let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="max-width:300px; height:auto;">`;
+        let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="max-width:260px; height:auto;">`;
         let startAngle = -90;
         entries.forEach(([faixa, { count, cor }]) => {
             const angle = (count / total) * 360;
@@ -425,7 +422,7 @@
             const labelR = radius * 0.65;
             const lx = cx + labelR * Math.cos(radMid);
             const ly = cy + labelR * Math.sin(radMid);
-            svg += `<text x="${lx}" y="${ly + 4}" font-size="12" fill="white" text-anchor="middle" font-weight="600">${(count/total*100).toFixed(1)}%</text>`;
+            svg += `<text x="${lx}" y="${ly + 4}" font-size="11" fill="white" text-anchor="middle" font-weight="600">${(count/total*100).toFixed(1)}%</text>`;
             startAngle = endAngle;
         });
         svg += '</svg>';
@@ -437,40 +434,33 @@
         chartContainer.innerHTML = svg + legend;
     }
 
-    // ===== FLASHCARDS (ANÁLISE) =====
+    // ===== FLASHCARDS =====
     function renderizarFlashcards(filtradas) {
         flashcardGrid.innerHTML = '';
         if (filtradas.length === 0) {
-            flashcardGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-brain" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Adicione dados para ver a análise.</div>';
+            flashcardGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-brain" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Adicione dados para ver a análise.</div>';
             return;
         }
-
         const comDados = filtradas.filter(l => l.feitas > 0);
         if (comDados.length === 0) {
-            flashcardGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:40px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado com exercícios feitos.</div>';
+            flashcardGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado com exercícios feitos.</div>';
             return;
         }
-
         const melhor = comDados.reduce((a, b) => (a.acertos/a.feitas) > (b.acertos/b.feitas) ? a : b);
         const pMelhor = ((melhor.acertos/melhor.feitas)*100).toFixed(1);
-
         const pior = comDados.reduce((a, b) => (a.acertos/a.feitas) < (b.acertos/b.feitas) ? a : b);
         const pPior = ((pior.acertos/pior.feitas)*100).toFixed(1);
-
         const somaPerc = comDados.reduce((s, l) => s + (l.acertos/l.feitas), 0);
         const mediaPerc = (somaPerc / comDados.length * 100).toFixed(1);
-
         const minAcertos = comDados.reduce((min, l) => Math.min(min, l.acertos), Infinity);
         const maxAcertos = comDados.reduce((max, l) => Math.max(max, l.acertos), -Infinity);
-
         const datas = filtradas.filter(l => l.data && l.feitas > 0).map(l => new Date(l.data)).sort((a,b) => a - b);
         let maiorStrike = 0;
         let currentStrike = 1;
         for (let i = 1; i < datas.length; i++) {
             const diff = (datas[i] - datas[i-1]) / (1000*60*60*24);
-            if (diff === 1) {
-                currentStrike++;
-            } else {
+            if (diff === 1) currentStrike++;
+            else {
                 if (currentStrike > maiorStrike) maiorStrike = currentStrike;
                 currentStrike = 1;
             }
@@ -491,6 +481,7 @@
         cards.forEach((card, i) => {
             const div = document.createElement('div');
             div.className = `flashcard ${card.cls} delay-${(i%6)+1}`;
+            div.setAttribute('role', 'listitem');
             div.innerHTML = `
                 <span class="icon">${card.icon}</span>
                 <div class="label">${card.label}</div>
@@ -524,12 +515,13 @@
         const items = filtradas.filter(l => calcularStatus(l).precisaRevisar && l.assunto);
         revisaoList.innerHTML = '';
         if (items.length === 0) {
-            revisaoList.innerHTML = '<li class="revisao-empty"><i class="fas fa-check-circle"></i> Nenhum assunto a revisar</li>';
+            revisaoList.innerHTML = '<li class="revisao-empty" role="listitem"><i class="fas fa-check-circle" aria-hidden="true"></i> Nenhum assunto a revisar</li>';
             return;
         }
         items.forEach(l => {
             const li = document.createElement('li');
-            li.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${l.assunto}`;
+            li.setAttribute('role', 'listitem');
+            li.innerHTML = `<i class="fas fa-exclamation-circle" aria-hidden="true"></i> ${l.assunto}`;
             revisaoList.appendChild(li);
         });
     }
@@ -543,7 +535,9 @@
         flashcardView.classList.toggle('active', currentMode === 'flashcard');
 
         document.querySelectorAll('.mode-toggle button').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === currentMode);
+            const isActive = btn.dataset.mode === currentMode;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
     }
 
@@ -566,6 +560,11 @@
         }
         salvarDados();
         renderizarCompleto();
+        // Rola para a nova linha (mobile)
+        if (window.innerWidth <= 768) {
+            const lastRow = tbody.lastElementChild;
+            if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     function removerLinha(id) {
@@ -606,6 +605,11 @@
         if (sortKey === key) sortAsc = !sortAsc;
         else { sortKey = key; sortAsc = true; }
         renderizarCompleto();
+        // Atualiza atributos aria-sort
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            const isActive = th.dataset.sort === sortKey;
+            th.setAttribute('aria-sort', isActive ? (sortAsc ? 'ascending' : 'descending') : 'none');
+        });
     }
 
     function aplicarFiltros() {
@@ -662,6 +666,8 @@
         sidebarToggle.classList.toggle('closed', !sidebarOpen);
         const icon = sidebarToggle.querySelector('i');
         icon.className = sidebarOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right';
+        // Atualiza aria-expanded
+        sidebarToggle.setAttribute('aria-expanded', sidebarOpen ? 'true' : 'false');
     }
 
     // ===== TEMA =====
@@ -670,19 +676,72 @@
         if (darkMode) {
             document.documentElement.setAttribute('data-theme', 'dark');
             themeToggle.querySelector('.thumb').style.left = '25px';
+            themeToggle.setAttribute('aria-checked', 'true');
         } else {
             document.documentElement.removeAttribute('data-theme');
             themeToggle.querySelector('.thumb').style.left = '3px';
+            themeToggle.setAttribute('aria-checked', 'false');
         }
         localStorage.setItem('darkMode', darkMode ? 'dark' : 'light');
     }
 
+    // ===== BACK TO TOP =====
+    function handleScroll() {
+        if (window.scrollY > 300) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+    }
+
+    // ===== SWIPE PARA ABRIR/FECHAR SIDEBAR (MOBILE) =====
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isSwiping = false;
+
+    function handleTouchStart(e) {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isSwiping = false;
+    }
+
+    function handleTouchMove(e) {
+        if (!touchStartX) return;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        // Só considera swipe horizontal se for mais horizontal que vertical
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+            isSwiping = true;
+            e.preventDefault();
+            // Se deslizar da borda esquerda para a direita (abrir) e sidebar fechada
+            if (deltaX > 50 && touchStartX < 40 && !sidebarOpen) {
+                toggleSidebar(true);
+                touchStartX = 0; // reset
+            }
+            // Se deslizar da direita para esquerda (fechar) e sidebar aberta
+            if (deltaX < -50 && sidebarOpen && window.innerWidth <= 768) {
+                toggleSidebar(false);
+                touchStartX = 0;
+            }
+        }
+    }
+
+    function handleTouchEnd() {
+        touchStartX = 0;
+        touchStartY = 0;
+        isSwiping = false;
+    }
+
     // ===== EVENTOS =====
     function setupEventListeners() {
+        // Ordenação
         document.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => { ordenarPor(th.dataset.sort); });
         });
 
+        // Inputs na tabela
         tbody.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
@@ -711,6 +770,7 @@
         });
         document.getElementById('clearBtn').addEventListener('click', limparTudo);
 
+        // Modos
         document.querySelectorAll('.mode-toggle button').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentMode = btn.dataset.mode;
@@ -726,6 +786,7 @@
             });
         });
 
+        // Tipo de gráfico
         document.querySelectorAll('#chartTypeGroup button').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentChartType = btn.dataset.chart;
@@ -738,15 +799,35 @@
             });
         });
 
+        // Sidebar
         sidebarToggle.addEventListener('click', () => toggleSidebar());
         closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
         themeToggle.addEventListener('click', toggleTheme);
 
+        // Back to top
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        window.addEventListener('scroll', handleScroll);
+
+        // Swipe (mobile)
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        // Fechar sidebar ao clicar fora (mobile)
         document.addEventListener('click', (e) => {
             if (window.innerWidth <= 768 && sidebarOpen) {
                 const isSidebar = sidebar.contains(e.target);
                 const isToggle = sidebarToggle.contains(e.target);
                 if (!isSidebar && !isToggle) toggleSidebar(false);
+            }
+        });
+
+        // Fechar sidebar com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebarOpen && window.innerWidth <= 768) {
+                toggleSidebar(false);
             }
         });
     }
@@ -758,6 +839,16 @@
         renderizarCompleto();
         toggleSidebar(true);
         setupEventListeners();
+        // Ajusta aria-sort inicial
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            if (th.dataset.sort === sortKey) {
+                th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+            }
+        });
+        // Remove botão back-to-top se não houver scroll (mobile)
+        if (document.body.scrollHeight <= window.innerHeight) {
+            backToTop.style.display = 'none';
+        }
     }
 
     init();
