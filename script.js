@@ -10,11 +10,11 @@
     let filtroStatus = 'all';
     let currentMode = 'table';
     let currentChartType = 'bars';
-    let sidebarOpen = true;
     let darkMode = false;
 
     // ===== DOM =====
     const tbody = document.getElementById('corpo-tabela');
+    const cardsContainer = document.getElementById('cardsContainer');
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const totalSpan = document.getElementById('totalCount');
@@ -28,12 +28,13 @@
     const chartContainer = document.getElementById('chartContainer');
     const flashcardGrid = document.getElementById('flashcardGrid');
     const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('overlay');
+    const menuToggle = document.getElementById('menuToggle');
     const closeSidebarBtn = document.getElementById('closeSidebar');
     const themeToggle = document.getElementById('themeToggle');
     const backToTop = document.getElementById('backToTop');
 
-    // ===== FUNÇÕES AUXILIARES (mesmas de antes) =====
+    // ===== FUNÇÕES AUXILIARES =====
     function diffDias(d1, d2) {
         if (!d1 || !d2) return null;
         const a = new Date(d1), b = new Date(d2);
@@ -154,12 +155,13 @@
         atualizarEstatisticas(filtradas);
         atualizarRevisaoList(filtradas);
         renderizarTabela(filtradas);
+        renderizarCards(filtradas);
         renderizarGrafico(filtradas, currentChartType);
         renderizarFlashcards(filtradas);
         aplicarModo();
     }
 
-    // ===== TABELA =====
+    // ===== TABELA (Desktop) =====
     function renderizarTabela(filtradas) {
         tbody.innerHTML = '';
         filtradas.forEach((linha, idx) => {
@@ -212,30 +214,159 @@
             </td>
             <td><input type="date" value="${linha.data}" data-field="data" data-id="${linha.id}" inputmode="none"></td>
             <td>${statusHtml}</td>
-            <td style="font-size:0.8rem; font-weight:500; color:${detalheCor}">${detalhe.texto}</td>
+            <td style="font-size:0.75rem; font-weight:500; color:${detalheCor}">${detalhe.texto}</td>
             <td><button class="delete-btn" data-id="${linha.id}" aria-label="Remover linha"><i class="fas fa-times" aria-hidden="true"></i></button></td>
         `;
         return tr;
     }
 
-    // ===== ATUALIZAR LINHA (sem recriar) =====
+    // ===== CARDS (Mobile) =====
+    function renderizarCards(filtradas) {
+        cardsContainer.innerHTML = '';
+        if (filtradas.length === 0) {
+            cardsContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;">Nenhum dado cadastrado.</div>';
+            return;
+        }
+        filtradas.forEach((linha, idx) => {
+            const statusObj = calcularStatus(linha);
+            const statusText = statusObj.status;
+            const erros = Math.max(0, linha.feitas - linha.acertos);
+            const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
+            const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+            const detalhe = calcularDetalhes(linha, idx, filtradas);
+
+            const badgeClass = {
+                'PENDENTE': 'badge-pendente',
+                'HORA DE PRATICAR': 'badge-praticar',
+                'ABAIXO DA META': 'badge-abaixo',
+                'REVISAR (Erro alto)': 'badge-revisar',
+                'REVISAR (15 dias)': 'badge-tempo',
+                'DOMINADO': 'badge-dominado'
+            }[statusText] || 'badge-pendente';
+
+            const card = document.createElement('div');
+            card.className = 'card-item';
+            card.dataset.id = linha.id;
+            card.innerHTML = `
+                <div class="card-row"><span class="label">Semana</span><span class="value">${linha.semana}</span></div>
+                <div class="card-row"><span class="label">Assunto</span><span class="value">${linha.assunto || '—'}</span></div>
+                <div class="card-row"><span class="label">Meta / Feitas</span><span class="value">${linha.meta} / ${linha.feitas}</span></div>
+                <div class="card-row"><span class="label">Acertos / Erros</span><span class="value">${linha.acertos} / ${erros}</span></div>
+                <div class="card-row">
+                    <span class="label">% Acerto</span>
+                    <span class="value">
+                        <span style="display:inline-flex;align-items:center;gap:4px;">
+                            ${perc.toFixed(0)}%
+                            <span class="bar" style="width:50px;height:5px;background:var(--border-color);border-radius:20px;overflow:hidden;display:inline-block;">
+                                <span class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%;height:100%;display:block;border-radius:20px;"></span>
+                            </span>
+                        </span>
+                    </span>
+                </div>
+                <div class="card-row"><span class="label">Data</span><span class="value">${linha.data || '—'}</span></div>
+                <div class="card-row"><span class="label">Status</span><span class="value"><span class="badge ${badgeClass}">${statusText}</span></span></div>
+                <div class="card-row"><span class="label">Detalhes</span><span class="value" style="font-size:0.8rem;color:${detalhe.classe.includes('bom') ? 'var(--success)' : detalhe.classe.includes('lento') ? 'var(--warning)' : detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)'}">${detalhe.texto}</span></div>
+                <div class="card-actions">
+                    <button class="delete-btn" data-id="${linha.id}" aria-label="Remover"><i class="fas fa-trash-alt" aria-hidden="true"></i> Remover</button>
+                </div>
+            `;
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    // ===== ATUALIZAR LINHA =====
     function atualizarLinhaDOM(id) {
         const linha = linhas.find(l => l.id === id);
         if (!linha) return;
+        // Atualiza na tabela
         const tr = tbody.querySelector(`tr[data-id="${id}"]`);
-        if (!tr) return;
+        if (tr) {
+            const filtradas = getLinhasOrdenadasEFiltradas();
+            const idx = filtradas.findIndex(l => l.id === id);
+            if (idx === -1) { tr.remove(); } else {
+                // atualiza células (mesmo código de antes)
+                const statusObj = calcularStatus(linha);
+                const statusText = statusObj.status;
+                const erros = Math.max(0, linha.feitas - linha.acertos);
+                const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
+                const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+                const detalhe = calcularDetalhes(linha, idx, filtradas);
+                const badgeClass = {
+                    'PENDENTE': 'badge-pendente',
+                    'HORA DE PRATICAR': 'badge-praticar',
+                    'ABAIXO DA META': 'badge-abaixo',
+                    'REVISAR (Erro alto)': 'badge-revisar',
+                    'REVISAR (15 dias)': 'badge-tempo',
+                    'DOMINADO': 'badge-dominado'
+                }[statusText] || 'badge-pendente';
+                const statusHtml = `<span class="badge ${badgeClass}">${statusText}</span>`;
+                const detalheCor = detalhe.classe.includes('bom') ? 'var(--success)' :
+                                   detalhe.classe.includes('lento') ? 'var(--warning)' :
+                                   detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
+                const cells = tr.querySelectorAll('td');
+                if (cells.length >= 11) {
+                    cells[5].textContent = erros;
+                    const percContainer = cells[6];
+                    const spanPerc = percContainer.querySelector('span');
+                    const barraPerc = percContainer.querySelector('.bar .fill');
+                    if (spanPerc) spanPerc.textContent = perc.toFixed(0) + '%';
+                    if (barraPerc) {
+                        barraPerc.style.width = Math.min(100, perc) + '%';
+                        barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
+                    }
+                    cells[8].innerHTML = statusHtml;
+                    const detalheCell = cells[9];
+                    detalheCell.textContent = detalhe.texto;
+                    detalheCell.style.color = detalheCor;
+                    const feitasCell = cells[3];
+                    const progressContainer = feitasCell.querySelector('.progress-inline');
+                    if (progressContainer) {
+                        const spanFeitas = progressContainer.querySelector('span:first-child');
+                        const barraFeitas = progressContainer.querySelector('.bar .fill');
+                        const inputFeitas = progressContainer.querySelector('input[data-field="feitas"]');
+                        if (spanFeitas) spanFeitas.textContent = linha.feitas;
+                        if (barraFeitas) {
+                            const p = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
+                            barraFeitas.style.width = p + '%';
+                            barraFeitas.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
+                        }
+                        if (inputFeitas && Number(inputFeitas.value) !== linha.feitas) {
+                            inputFeitas.value = linha.feitas;
+                        }
+                    }
+                    const metaInput = tr.querySelector('input[data-field="meta"]');
+                    if (metaInput) metaInput.value = linha.meta;
+                    const acertosInput = tr.querySelector('input[data-field="acertos"]');
+                    if (acertosInput) acertosInput.value = linha.acertos;
+                    const dataInput = tr.querySelector('input[data-field="data"]');
+                    if (dataInput) dataInput.value = linha.data;
+                    const assuntoInput = tr.querySelector('input[data-field="assunto"]');
+                    if (assuntoInput) assuntoInput.value = linha.assunto;
+                    const semanaInput = tr.querySelector('input[data-field="semana"]');
+                    if (semanaInput) semanaInput.value = linha.semana;
+                }
+            }
+        }
+        // Atualiza cards (mobile)
+        const card = cardsContainer.querySelector(`.card-item[data-id="${id}"]`);
+        if (card) {
+            // Recria o card (simples, mas eficaz)
+            const filtradas = getLinhasOrdenadasEFiltradas();
+            const idx = filtradas.findIndex(l => l.id === id);
+            if (idx === -1) { card.remove(); } else {
+                const novoCard = criarCardElement(linha, idx, filtradas);
+                card.replaceWith(novoCard);
+            }
+        }
+    }
 
-        const filtradas = getLinhasOrdenadasEFiltradas();
-        const idx = filtradas.findIndex(l => l.id === id);
-        if (idx === -1) { tr.remove(); return; }
-
+    function criarCardElement(linha, idx, filtradas) {
         const statusObj = calcularStatus(linha);
         const statusText = statusObj.status;
         const erros = Math.max(0, linha.feitas - linha.acertos);
         const perc = linha.feitas > 0 ? (linha.acertos / linha.feitas) * 100 : 0;
         const progressFeitas = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
         const detalhe = calcularDetalhes(linha, idx, filtradas);
-
         const badgeClass = {
             'PENDENTE': 'badge-pendente',
             'HORA DE PRATICAR': 'badge-praticar',
@@ -244,61 +375,36 @@
             'REVISAR (15 dias)': 'badge-tempo',
             'DOMINADO': 'badge-dominado'
         }[statusText] || 'badge-pendente';
-        const statusHtml = `<span class="badge ${badgeClass}">${statusText}</span>`;
-        const detalheCor = detalhe.classe.includes('bom') ? 'var(--success)' :
-                           detalhe.classe.includes('lento') ? 'var(--warning)' :
-                           detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)';
-
-        const cells = tr.querySelectorAll('td');
-        if (cells.length < 11) return;
-
-        cells[5].textContent = erros;
-
-        const percContainer = cells[6];
-        const spanPerc = percContainer.querySelector('span');
-        const barraPerc = percContainer.querySelector('.bar .fill');
-        if (spanPerc) spanPerc.textContent = perc.toFixed(0) + '%';
-        if (barraPerc) {
-            barraPerc.style.width = Math.min(100, perc) + '%';
-            barraPerc.className = 'fill ' + (perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green');
-        }
-
-        cells[8].innerHTML = statusHtml;
-
-        const detalheCell = cells[9];
-        detalheCell.textContent = detalhe.texto;
-        detalheCell.style.color = detalheCor;
-
-        const feitasCell = cells[3];
-        const progressContainer = feitasCell.querySelector('.progress-inline');
-        if (progressContainer) {
-            const spanFeitas = progressContainer.querySelector('span:first-child');
-            const barraFeitas = progressContainer.querySelector('.bar .fill');
-            const inputFeitas = progressContainer.querySelector('input[data-field="feitas"]');
-            if (spanFeitas) spanFeitas.textContent = linha.feitas;
-            if (barraFeitas) {
-                const p = linha.meta > 0 ? Math.min(100, (linha.feitas / linha.meta) * 100) : 0;
-                barraFeitas.style.width = p + '%';
-                barraFeitas.className = 'fill ' + (p < 50 ? 'red' : p < 75 ? 'orange' : 'green');
-            }
-            if (inputFeitas && Number(inputFeitas.value) !== linha.feitas) {
-                inputFeitas.value = linha.feitas;
-            }
-        }
-
-        const metaInput = tr.querySelector('input[data-field="meta"]');
-        if (metaInput) metaInput.value = linha.meta;
-        const acertosInput = tr.querySelector('input[data-field="acertos"]');
-        if (acertosInput) acertosInput.value = linha.acertos;
-        const dataInput = tr.querySelector('input[data-field="data"]');
-        if (dataInput) dataInput.value = linha.data;
-        const assuntoInput = tr.querySelector('input[data-field="assunto"]');
-        if (assuntoInput) assuntoInput.value = linha.assunto;
-        const semanaInput = tr.querySelector('input[data-field="semana"]');
-        if (semanaInput) semanaInput.value = linha.semana;
+        const card = document.createElement('div');
+        card.className = 'card-item';
+        card.dataset.id = linha.id;
+        card.innerHTML = `
+            <div class="card-row"><span class="label">Semana</span><span class="value">${linha.semana}</span></div>
+            <div class="card-row"><span class="label">Assunto</span><span class="value">${linha.assunto || '—'}</span></div>
+            <div class="card-row"><span class="label">Meta / Feitas</span><span class="value">${linha.meta} / ${linha.feitas}</span></div>
+            <div class="card-row"><span class="label">Acertos / Erros</span><span class="value">${linha.acertos} / ${erros}</span></div>
+            <div class="card-row">
+                <span class="label">% Acerto</span>
+                <span class="value">
+                    <span style="display:inline-flex;align-items:center;gap:4px;">
+                        ${perc.toFixed(0)}%
+                        <span class="bar" style="width:50px;height:5px;background:var(--border-color);border-radius:20px;overflow:hidden;display:inline-block;">
+                            <span class="fill ${perc < 50 ? 'red' : perc < 75 ? 'orange' : 'green'}" style="width:${Math.min(100, perc)}%;height:100%;display:block;border-radius:20px;"></span>
+                        </span>
+                    </span>
+                </span>
+            </div>
+            <div class="card-row"><span class="label">Data</span><span class="value">${linha.data || '—'}</span></div>
+            <div class="card-row"><span class="label">Status</span><span class="value"><span class="badge ${badgeClass}">${statusText}</span></span></div>
+            <div class="card-row"><span class="label">Detalhes</span><span class="value" style="font-size:0.8rem;color:${detalhe.classe.includes('bom') ? 'var(--success)' : detalhe.classe.includes('lento') ? 'var(--warning)' : detalhe.classe.includes('urgencia') ? 'var(--danger)' : 'var(--text-secondary)'}">${detalhe.texto}</span></div>
+            <div class="card-actions">
+                <button class="delete-btn" data-id="${linha.id}" aria-label="Remover"><i class="fas fa-trash-alt" aria-hidden="true"></i> Remover</button>
+            </div>
+        `;
+        return card;
     }
 
-    // ===== GRÁFICOS (mesmos de antes, mantidos) =====
+    // ===== GRÁFICOS =====
     function renderizarGrafico(filtradas, type) {
         if (type === 'bars') renderBars(filtradas);
         else if (type === 'line') renderLine(filtradas);
@@ -312,9 +418,17 @@
             chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
             return;
         }
-        const sorted = [...filtradas].filter(l => l.feitas > 0).sort((a,b) => (b.acertos/b.feitas) - (a.acertos/a.feitas));
+        // === CORREÇÃO: remove duplicatas pelo assunto ===
+        const unicos = new Map();
+        filtradas.filter(l => l.feitas > 0).forEach(l => {
+            const key = l.assunto || 'Sem assunto';
+            if (!unicos.has(key) || (l.acertos/l.feitas) > (unicos.get(key).acertos/unicos.get(key).feitas)) {
+                unicos.set(key, l);
+            }
+        });
+        const sorted = Array.from(unicos.values()).sort((a,b) => (b.acertos/b.feitas) - (a.acertos/a.feitas));
         if (sorted.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-simple" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado com exercícios feitos.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;">Nenhum dado com exercícios feitos.</div>';
             return;
         }
         sorted.forEach((linha, i) => {
@@ -342,14 +456,20 @@
             chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-line" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Precisa de pelo menos 2 semanas com dados.</div>';
             return;
         }
-        const pontos = dados.map(l => ({
+        // Remove duplicatas de data (pega a primeira ocorrência)
+        const dataMap = new Map();
+        dados.forEach(l => {
+            if (!dataMap.has(l.data)) dataMap.set(l.data, l);
+        });
+        const unicos = Array.from(dataMap.values()).sort((a,b) => a.data.localeCompare(b.data));
+        const pontos = unicos.map(l => ({
             label: l.assunto || 'Sem assunto',
             perc: (l.acertos / l.feitas) * 100,
             data: l.data
         }));
-        const width = Math.max(400, pontos.length * 60);
-        const height = 240;
-        const padding = 35;
+        const width = Math.max(350, pontos.length * 55);
+        const height = 200;
+        const padding = 30;
         const innerWidth = width - padding * 2;
         const innerHeight = height - padding * 2;
         const maxVal = 100;
@@ -359,7 +479,7 @@
         for (let g = 0; g <= 100; g += 25) {
             const y = height - padding - (g / maxVal) * innerHeight;
             svg += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="4,4"/>`;
-            svg += `<text x="${padding - 6}" y="${y + 4}" font-size="9" fill="var(--text-muted)" text-anchor="end">${g}%</text>`;
+            svg += `<text x="${padding - 6}" y="${y + 4}" font-size="8" fill="var(--text-muted)" text-anchor="end">${g}%</text>`;
         }
         const points = pontos.map((p, i) => {
             const x = padding + (i / (pontos.length - 1)) * innerWidth;
@@ -368,9 +488,9 @@
         });
         svg += `<polyline points="${points.map(p => p.x+','+p.y).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
         points.forEach((p, i) => {
-            svg += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="var(--accent)" stroke="var(--bg-main)" stroke-width="2"/>`;
-            svg += `<text x="${p.x}" y="${height - padding + 14}" font-size="8" fill="var(--text-secondary)" text-anchor="middle" transform="rotate(-30, ${p.x}, ${height - padding + 14})">${p.label.length > 8 ? p.label.substr(0,6)+'…' : p.label}</text>`;
-            svg += `<text x="${p.x}" y="${p.y - 10}" font-size="9" fill="var(--text-primary)" text-anchor="middle" font-weight="600">${Math.round(p.perc)}%</text>`;
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--accent)" stroke="var(--bg-main)" stroke-width="2"/>`;
+            svg += `<text x="${p.x}" y="${height - padding + 14}" font-size="7" fill="var(--text-secondary)" text-anchor="middle" transform="rotate(-30, ${p.x}, ${height - padding + 14})">${p.label.length > 8 ? p.label.substr(0,6)+'…' : p.label}</text>`;
+            svg += `<text x="${p.x}" y="${p.y - 8}" font-size="8" fill="var(--text-primary)" text-anchor="middle" font-weight="600">${Math.round(p.perc)}%</text>`;
         });
         svg += '</svg>';
         chartContainer.innerHTML = svg;
@@ -380,7 +500,7 @@
         chartContainer.className = 'chart-pie-container';
         chartContainer.innerHTML = '';
         if (filtradas.length === 0) {
-            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;"><i class="fas fa-chart-pie" style="font-size:2rem; display:block; margin-bottom:12px;"></i>Nenhum dado para exibir.</div>';
+            chartContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px 0;">Nenhum dado para exibir.</div>';
             return;
         }
         const faixas = {
@@ -388,8 +508,15 @@
             'Médio (50-74%)': { count: 0, cor: 'var(--warning)' },
             'Baixo (<50%)': { count: 0, cor: 'var(--danger)' }
         };
+        const unicos = new Map();
         filtradas.forEach(l => {
             if (l.feitas === 0) return;
+            const key = l.assunto || 'Sem assunto';
+            if (!unicos.has(key) || (l.acertos/l.feitas) > (unicos.get(key).acertos/unicos.get(key).feitas)) {
+                unicos.set(key, l);
+            }
+        });
+        Array.from(unicos.values()).forEach(l => {
             const perc = (l.acertos / l.feitas) * 100;
             if (perc >= 75) faixas['Alto (≥75%)'].count++;
             else if (perc >= 50) faixas['Médio (50-74%)'].count++;
@@ -401,10 +528,10 @@
             return;
         }
         const total = entries.reduce((sum, [k,v]) => sum + v.count, 0);
-        const size = 260;
-        const radius = 100;
+        const size = 200;
+        const radius = 80;
         const cx = size/2, cy = size/2;
-        let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="max-width:260px; height:auto;">`;
+        let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="max-width:200px; height:auto;">`;
         let startAngle = -90;
         entries.forEach(([faixa, { count, cor }]) => {
             const angle = (count / total) * 360;
@@ -422,7 +549,7 @@
             const labelR = radius * 0.65;
             const lx = cx + labelR * Math.cos(radMid);
             const ly = cy + labelR * Math.sin(radMid);
-            svg += `<text x="${lx}" y="${ly + 4}" font-size="11" fill="white" text-anchor="middle" font-weight="600">${(count/total*100).toFixed(1)}%</text>`;
+            svg += `<text x="${lx}" y="${ly + 4}" font-size="10" fill="white" text-anchor="middle" font-weight="600">${(count/total*100).toFixed(1)}%</text>`;
             startAngle = endAngle;
         });
         svg += '</svg>';
@@ -539,6 +666,17 @@
             btn.classList.toggle('active', isActive);
             btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
+        // Mostrar/esconder menu toggle
+        menuToggle.classList.toggle('hidden', currentMode === 'chart' || currentMode === 'flashcard');
+    }
+
+    // ===== SIDEBAR (overlay) =====
+    function toggleSidebar(force) {
+        const shouldOpen = (typeof force === 'boolean') ? force : !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', shouldOpen);
+        overlay.classList.toggle('active', shouldOpen);
+        menuToggle.classList.toggle('hidden', shouldOpen);
+        document.body.style.overflow = shouldOpen ? 'hidden' : '';
     }
 
     // ===== MANIPULAÇÃO DE DADOS =====
@@ -560,10 +698,9 @@
         }
         salvarDados();
         renderizarCompleto();
-        // Rola para a nova linha (mobile)
         if (window.innerWidth <= 768) {
-            const lastRow = tbody.lastElementChild;
-            if (lastRow) lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const lastCard = cardsContainer.lastElementChild;
+            if (lastCard) lastCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
 
@@ -605,7 +742,6 @@
         if (sortKey === key) sortAsc = !sortAsc;
         else { sortKey = key; sortAsc = true; }
         renderizarCompleto();
-        // Atualiza atributos aria-sort
         document.querySelectorAll('th[data-sort]').forEach(th => {
             const isActive = th.dataset.sort === sortKey;
             th.setAttribute('aria-sort', isActive ? (sortAsc ? 'ascending' : 'descending') : 'none');
@@ -658,18 +794,6 @@
         reader.readAsText(file);
     }
 
-    // ===== SIDEBAR TOGGLE =====
-    function toggleSidebar(force) {
-        if (typeof force === 'boolean') sidebarOpen = force;
-        else sidebarOpen = !sidebarOpen;
-        sidebar.classList.toggle('closed', !sidebarOpen);
-        sidebarToggle.classList.toggle('closed', !sidebarOpen);
-        const icon = sidebarToggle.querySelector('i');
-        icon.className = sidebarOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right';
-        // Atualiza aria-expanded
-        sidebarToggle.setAttribute('aria-expanded', sidebarOpen ? 'true' : 'false');
-    }
-
     // ===== TEMA =====
     function toggleTheme() {
         darkMode = !darkMode;
@@ -694,54 +818,12 @@
         }
     }
 
-    // ===== SWIPE PARA ABRIR/FECHAR SIDEBAR (MOBILE) =====
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isSwiping = false;
-
-    function handleTouchStart(e) {
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        isSwiping = false;
-    }
-
-    function handleTouchMove(e) {
-        if (!touchStartX) return;
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - touchStartX;
-        const deltaY = touch.clientY - touchStartY;
-        // Só considera swipe horizontal se for mais horizontal que vertical
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
-            isSwiping = true;
-            e.preventDefault();
-            // Se deslizar da borda esquerda para a direita (abrir) e sidebar fechada
-            if (deltaX > 50 && touchStartX < 40 && !sidebarOpen) {
-                toggleSidebar(true);
-                touchStartX = 0; // reset
-            }
-            // Se deslizar da direita para esquerda (fechar) e sidebar aberta
-            if (deltaX < -50 && sidebarOpen && window.innerWidth <= 768) {
-                toggleSidebar(false);
-                touchStartX = 0;
-            }
-        }
-    }
-
-    function handleTouchEnd() {
-        touchStartX = 0;
-        touchStartY = 0;
-        isSwiping = false;
-    }
-
     // ===== EVENTOS =====
     function setupEventListeners() {
-        // Ordenação
         document.querySelectorAll('th[data-sort]').forEach(th => {
             th.addEventListener('click', () => { ordenarPor(th.dataset.sort); });
         });
 
-        // Inputs na tabela
         tbody.addEventListener('input', (e) => {
             const input = e.target;
             if (input.tagName !== 'INPUT') return;
@@ -759,6 +841,11 @@
             if (btn) removerLinha(parseInt(btn.dataset.id, 10));
         });
 
+        cardsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.delete-btn');
+            if (btn) removerLinha(parseInt(btn.dataset.id, 10));
+        });
+
         document.getElementById('addBtn').addEventListener('click', () => adicionarLinha());
         searchInput.addEventListener('input', aplicarFiltros);
         statusFilter.addEventListener('change', aplicarFiltros);
@@ -770,7 +857,6 @@
         });
         document.getElementById('clearBtn').addEventListener('click', limparTudo);
 
-        // Modos
         document.querySelectorAll('.mode-toggle button').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentMode = btn.dataset.mode;
@@ -786,7 +872,6 @@
             });
         });
 
-        // Tipo de gráfico
         document.querySelectorAll('#chartTypeGroup button').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentChartType = btn.dataset.chart;
@@ -799,34 +884,27 @@
             });
         });
 
-        // Sidebar
-        sidebarToggle.addEventListener('click', () => toggleSidebar());
+        // Menu toggle e overlay
+        menuToggle.addEventListener('click', () => toggleSidebar(true));
+        overlay.addEventListener('click', () => toggleSidebar(false));
         closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
-        themeToggle.addEventListener('click', toggleTheme);
 
-        // Back to top
+        themeToggle.addEventListener('click', toggleTheme);
         backToTop.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         window.addEventListener('scroll', handleScroll);
 
-        // Swipe (mobile)
-        document.addEventListener('touchstart', handleTouchStart, { passive: true });
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-        // Fechar sidebar ao clicar fora (mobile)
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && sidebarOpen) {
-                const isSidebar = sidebar.contains(e.target);
-                const isToggle = sidebarToggle.contains(e.target);
-                if (!isSidebar && !isToggle) toggleSidebar(false);
+        // Fechar sidebar com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                toggleSidebar(false);
             }
         });
 
-        // Fechar sidebar com ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && sidebarOpen && window.innerWidth <= 768) {
+        // Redimensionamento: se voltar para desktop, fecha sidebar
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 769 && sidebar.classList.contains('open')) {
                 toggleSidebar(false);
             }
         });
@@ -837,18 +915,22 @@
         carregarDados();
         carregarTema();
         renderizarCompleto();
-        toggleSidebar(true);
+        // Sidebar começa fechada no mobile
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            menuToggle.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('open');
+            overlay.classList.remove('active');
+            menuToggle.classList.add('hidden');
+        }
         setupEventListeners();
-        // Ajusta aria-sort inicial
         document.querySelectorAll('th[data-sort]').forEach(th => {
             if (th.dataset.sort === sortKey) {
                 th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
             }
         });
-        // Remove botão back-to-top se não houver scroll (mobile)
-        if (document.body.scrollHeight <= window.innerHeight) {
-            backToTop.style.display = 'none';
-        }
     }
 
     init();

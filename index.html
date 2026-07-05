@@ -11,6 +11,9 @@
 
 <div class="app" role="application" aria-label="Painel de estudos">
 
+    <!-- ===== OVERLAY (fundo escuro) ===== -->
+    <div class="overlay" id="overlay"></div>
+
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" id="sidebar" role="navigation" aria-label="Painel lateral">
         <div class="sidebar-header">
@@ -83,8 +86,8 @@
             </div>
         </div>
 
-        <!-- Modo Tabela -->
-        <div class="table-view" id="tableView" role="region" aria-label="Tabela de dados">
+        <!-- Modo Tabela (cards em mobile) -->
+        <div class="table-view" id="tableView" role="region" aria-label="Dados de estudo">
             <div class="table-wrapper" tabindex="0" role="table" aria-label="Tabela de estudos">
                 <table>
                     <thead>
@@ -105,6 +108,8 @@
                     <tbody id="corpo-tabela"></tbody>
                 </table>
             </div>
+            <!-- Container para cards (mobile) -->
+            <div class="cards-container" id="cardsContainer"></div>
         </div>
 
         <!-- Modo Gráfico -->
@@ -123,12 +128,12 @@
     </main>
 </div>
 
-<!-- Botão flutuante -->
-<button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Abrir/fechar painel lateral">
-    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+<!-- Botão hambúrguer (mobile) -->
+<button class="menu-toggle" id="menuToggle" aria-label="Abrir menu lateral">
+    <i class="fas fa-bars" aria-hidden="true"></i>
 </button>
 
-<!-- Botão "Voltar ao topo" (mobile) -->
+<!-- Botão "Voltar ao topo" -->
 <button class="back-to-top" id="backToTop" aria-label="Voltar ao topo">
     <i class="fas fa-arrow-up" aria-hidden="true"></i>
 </button>
